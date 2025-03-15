@@ -1,1 +1,3 @@
 .venv
+/my_finetuned_model
+/results
