@@ -45,6 +45,10 @@ trainer = Trainer(
 # Train the model
 trainer.train()
 
+save_path = "./my_finetuned_model"  # Change this to your preferred directory
+model.save_pretrained(save_path)
+tokenizer.save_pretrained(save_path)
+
 # Inference
 def predict_sentiment(text):
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
