@@ -1,7 +1,6 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, DataCollatorWithPadding
 from datasets import load_dataset
-from torch.utils.data import DataLoader
 
 # Load dataset (IMDB reviews)
 dataset = load_dataset("imdb")
@@ -12,26 +11,35 @@ model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-unca
 
 # Tokenize the dataset
 def preprocess(example):
-    return tokenizer(example['text'], truncation=True, padding=True)
+    return tokenizer(example["text"], truncation=True, padding="max_length", max_length=512)
 
-encoded_dataset = dataset.map(preprocess, batched=True)
+encoded_dataset = dataset.map(preprocess, batched=True, remove_columns=["text"])
+
+# Define data collator to handle padding
+data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 # Set training arguments
 training_args = TrainingArguments(
     output_dir="./results",
     evaluation_strategy="epoch",
+    save_strategy="epoch",
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
-    num_train_epochs=1,
+    num_train_epochs=3,  # Increase for better results
     logging_dir="./logs",
+    logging_steps=100,
+    save_total_limit=2,
+    load_best_model_at_end=True,
 )
 
 # Create Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=encoded_dataset['train'].shuffle().select(range(1000)),
-    eval_dataset=encoded_dataset['test'].shuffle().select(range(200)),
+    train_dataset=encoded_dataset["train"].shuffle(seed=42).select(range(1000)),
+    eval_dataset=encoded_dataset["test"].shuffle(seed=42).select(range(200)),
+    tokenizer=tokenizer,
+    data_collator=data_collator,
 )
 
 # Train the model
@@ -39,16 +47,14 @@ trainer.train()
 
 # Inference
 def predict_sentiment(text):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
-    outputs = model(**inputs)
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
     logits = outputs.logits
     prediction = torch.argmax(logits, dim=1).item()
-    sentiment = "positive" if prediction == 1 else "negative"
-    return sentiment
+    return "positive" if prediction == 1 else "negative"
 
 # Test the model
 example_text = "I absolutely loved this movie. The acting was fantastic!"
 result = predict_sentiment(example_text)
 print(f"Sentiment: {result}")
-
-# Let me know if you want me to add data visualizations or improve training settings! 🚀
