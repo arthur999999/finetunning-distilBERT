@@ -23,7 +23,9 @@ if __name__ == "__main__":
         "I absolutely loved this movie. The acting was fantastic!",
         "The film was boring and too long. I wouldn't recommend it.",
         "Amazing storyline and great performances by the actors!",
-        "Terrible script, bad direction, and awful cinematography."
+        "Terrible script, bad direction, and awful cinematography.",
+        "I love this movie",
+        "I hate this movie"
     ]
     
     for text in test_texts:
